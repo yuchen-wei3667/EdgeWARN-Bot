@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily forecast mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-deep: #060c1a;
+  --panel: rgba(10, 18, 36, 0.82);
+  --panel-2: #111c34;
+  --line: rgba(148, 163, 184, 0.22);
+  --text: #f8fbff;
+  --text-2: #dce8f5;
+  --muted: #94a3b8;
+  --cyan: #67e8f9;
+  --sky: #38bdf8;
+  --amber: #facc15;
+  --orange: #f97316;
+  --rose: #fb7185;
+  --font: "Sora", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: #02050d; color: var(--text); font-family: var(--font);
+  padding: 32px 16px 64px;
+}
+.sheet-head { max-width: 1200px; margin: 0 auto 28px; }
+.sheet-head h1 { font-size: 1.4rem; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.02em; }
+.sheet-head p { margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.6; max-width: 70ch; }
+.board { display: flex; flex-wrap: wrap; gap: 40px; justify-content: center; align-items: flex-start; }
+figure { margin: 0; }
+figcaption { margin-top: 12px; color: var(--muted); font-size: .8rem; line-height: 1.5; max-width: 60ch; }
+.frame { border-radius: 12px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+.card { width: calc(var(--w) * 1px); height: calc(var(--h) * 1px); }
+
+/* ---------- card ---------- */
+.card {
+  position: relative; overflow: hidden; background: var(--bg-deep); color: var(--text);
+  padding: 56px 60px 48px; display: flex; flex-direction: column; gap: 30px; isolation: isolate;
+}
+.card::before { /* weather atmosphere: one glow per condition, like the website's day cards */
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background:
+    radial-gradient(ellipse 70% 38% at 82% 6%, var(--glow-a), transparent 70%),
+    radial-gradient(ellipse 60% 30% at 8% 34%, var(--glow-b), transparent 72%),
+    radial-gradient(ellipse 120% 120% at 50% 50%, transparent 40%, var(--bg-deep) 100%);
+}
+.card--fair  { --glow-a: rgba(250, 204, 21, .20); --glow-b: rgba(56, 189, 248, .14); }
+.card--storm { --glow-a: rgba(167, 139, 250, .26); --glow-b: rgba(251, 113, 133, .16); }
+
+.top { display: flex; align-items: center; gap: 18px; }
+.top img { width: 56px; height: 56px; border-radius: 14px; box-shadow: 0 7px 20px rgba(2,6,23,.4); }
+.top .where { display: flex; flex-direction: column; gap: 2px; }
+.top .where strong { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.top .where span { font-size: 19px; color: var(--muted); }
+.top .brand { margin-left: auto; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-2); }
+
+.headline { text-wrap: balance; margin: 0; font-size: 62px; line-height: 1.08; font-weight: 600; letter-spacing: -0.035em; max-width: 17ch; }
+.sub { margin: 14px 0 0; font-size: 24px; line-height: 1.5; color: var(--text-2); max-width: 44ch; font-weight: 400; }
+
+.alertbar { flex: none;
+  display: flex; align-items: center; gap: 18px; padding: 18px 24px; border-radius: 16px;
+  background: rgba(251,113,133,.14); border: 1px solid rgba(251,113,133,.5);
+}
+.alertbar svg { flex: none; width: 36px; height: 36px; stroke: var(--rose); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.alertbar b { display: block; font-size: 23px; font-weight: 700; }
+.alertbar span { font-size: 19px; color: var(--text-2); }
+
+.glass { flex: none;
+  border-radius: 20px; background: linear-gradient(120deg, rgba(255,255,255,.10), rgba(255,255,255,.03) 40%, transparent 65%), rgba(5,18,32,.46);
+  border: 1px solid rgba(224,243,255,.14); box-shadow: 0 12px 32px rgba(0,8,21,.25);
+}
+.today { padding: 26px 28px 20px; }
+.today-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.today-head strong { font-size: 22px; font-weight: 600; }
+.today-head span { font-size: 18px; color: var(--muted); }
+.curve { width: 100%; height: auto; display: block; overflow: visible; }
+.curve text { font-family: var(--font); font-size: 17px; fill: var(--text-2); font-variant-numeric: tabular-nums; }
+.curve .dim { fill: var(--muted); }
+.curve .peak { font-weight: 700; fill: var(--text); font-size: 22px; }
+
+.days { display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; }
+.row {
+  display: grid; grid-template-columns: 112px 44px 1fr 56px 250px 56px 92px; align-items: center; column-gap: 16px;
+  padding: 0 28px; height: 72px; flex: none; border-top: 1px solid rgba(224,243,255,.10);
+}
+.row:first-child { border-top: 0; }
+.row .d strong { display: block; font-size: 24px; font-weight: 600; }
+.row .d span { font-size: 17px; color: var(--muted); }
+.row svg.i { width: 40px; height: 40px; stroke: var(--cyan); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.row .c { font-size: 20px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .lo { font-size: 22px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.row .hi { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.range { position: relative; height: 8px; border-radius: 99px; background: rgba(100,116,139,.28); }
+.range i { position: absolute; top: 0; bottom: 0; border-radius: inherit; background: linear-gradient(90deg,#38bdf8 0%,#facc15 52%,#f97316 100%); }
+.range i.now { background: var(--amber); width: 12px; height: 12px; top: -2px; border-radius: 50%; box-shadow: 0 0 12px rgba(250,204,21,.7); }
+.row .p { display: flex; align-items: center; gap: 7px; font-size: 20px; color: var(--sky); justify-content: flex-end; font-variant-numeric: tabular-nums; }
+.row .p svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.row.hazard { background: linear-gradient(90deg, rgba(251,113,133,.16), transparent 70%); }
+.row.hazard .c { color: #ffd0d6; }
+
+.foot { margin-top: auto; display: flex; justify-content: space-between; gap: 24px; font-size: 17px; color: var(--muted); }
+
+/* ---------- landscape (Discord) ---------- */
+.card--wide { padding: 40px 48px; flex-direction: row; gap: 40px; }
+.card--wide .left { width: 500px; flex: none; display: flex; flex-direction: column; gap: 22px; }
+.card--wide .headline { font-size: 44px; max-width: 16ch; }
+.card--wide .sub { font-size: 20px; margin-top: 10px; }
+.card--wide .right { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+.card--wide .row { height: 62px; padding: 0 20px; column-gap: 12px; }
+.card--wide .row .d strong { font-size: 20px; } .card--wide .row .d span { font-size: 14px; }
+.card--wide .row svg.i { width: 32px; height: 32px; }
+.card--wide .row .c { display: none; }
+.card--wide .row { grid-template-columns: 84px 36px 44px 1fr 44px 70px; }
+.card--wide .row .lo, .card--wide .row .p { font-size: 17px; } .card--wide .row .hi { font-size: 19px; }
+.card--wide .foot { font-size: 14px; flex-direction: column; gap: 4px; }
+.card--wide .top img { width: 44px; height: 44px; } .card--wide .top .where strong { font-size: 21px; } .card--wide .top .where span { font-size: 15px; }
+.card--wide .today { padding: 18px 22px 12px; } .card--wide .today-head strong { font-size: 18px; } .card--wide .today-head span { font-size: 14px; }
+.card--wide .curve text { font-size: 15px; }
+</style>
+</head>
+<body>
+<div class="sheet-head">
+  <h1>Daily forecast graphic</h1>
+  <p>Three states of the same image: a fair day, a day with an active warning, and the wide format for Discord. Styling comes from the EdgeWARN website: navy base, cyan accent, Sora, frosted panels over a weather glow, and the blue-to-orange range bar. All numbers are sample data.</p>
+</div>
+<div class="board" id="board"></div>
+
+<script src="assets/icons.js"></script>
+<script>
+const icon = (name, cls = 'i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
+
+// ---- sample data (what backend/forecast will hand to the renderer) ----
+const hours = (temps, rain) => temps.map((t, i) => ({ h: 6 + i * 2, t, r: rain[i] }));
+const FAIR = {
+  place: 'Oklahoma City, OK', date: 'Wednesday, October 14',
+  headline: 'Warm and bright, with a breeze this afternoon.',
+  sub: 'Highs reach 82 around 4 PM. Southwest winds gust to 28 mph. Rain holds off until the weekend.',
+  hours: hours([61, 59, 66, 75, 81, 82, 76, 69, 64], [0, 0, 0, 0, 0, 5, 5, 0, 0]),
+  peak: 5,
+  days: [
+    ['Today', 'Oct 14', 'cloud-sun', 'Mostly sunny', 61, 82, 5, 'SW 18 mph'],
+    ['Thu', 'Oct 15', 'sun', 'Sunny', 58, 85, 0, 'S 14 mph'],
+    ['Fri', 'Oct 16', 'cloud-sun', 'Partly cloudy', 62, 83, 10, 'S 12 mph'],
+    ['Sat', 'Oct 17', 'cloud', 'Increasing clouds', 60, 76, 35, 'SE 9 mph'],
+    ['Sun', 'Oct 18', 'cloud-rain', 'Showers', 54, 68, 70, 'NE 15 mph'],
+    ['Mon', 'Oct 19', 'cloud-rain', 'Light rain', 49, 61, 55, 'N 12 mph'],
+    ['Tue', 'Oct 20', 'cloud-sun', 'Partly cloudy', 46, 64, 15, 'N 8 mph'],
+  ],
+  foot: ['Forecast data: Open-Meteo', 'Made Oct 14, 6:00 AM CDT'],
+};
+const STORM = {
+  place: 'Oklahoma City, OK', date: 'Thursday, May 21',
+  headline: 'Storms arrive after 4 PM. Some may be severe.',
+  sub: 'Strong wind and large hail are the main risks. Plan to be indoors by late afternoon.',
+  hours: hours([66, 65, 71, 79, 84, 86, 77, 68, 65], [0, 0, 5, 10, 25, 70, 90, 80, 30]),
+  peak: 5,
+  alert: ['Severe Thunderstorm Watch until 10 PM', 'Issued by the Storm Prediction Center for central Oklahoma.'],
+  days: [
+    ['Today', 'May 21', 'cloud-lightning', 'Severe storms', 66, 86, 90, 'S 22 mph', true],
+    ['Fri', 'May 22', 'cloud-lightning', 'Scattered storms', 64, 79, 55, 'SW 16 mph'],
+    ['Sat', 'May 23', 'cloud-sun', 'Partly cloudy', 58, 77, 15, 'W 12 mph'],
+    ['Sun', 'May 24', 'sun', 'Sunny', 56, 80, 5, 'NW 10 mph'],
+    ['Mon', 'May 25', 'sun', 'Sunny', 58, 83, 0, 'S 11 mph'],
+    ['Tue', 'May 26', 'cloud-sun', 'Mostly sunny', 62, 86, 10, 'S 15 mph'],
+    ['Wed', 'May 27', 'cloud-rain', 'Showers likely', 61, 79, 60, 'S 14 mph'],
+  ],
+  foot: ['Alerts: NWS · Outlook: SPC · Forecast: Open-Meteo', 'Made May 21, 6:00 AM CDT'],
+};
+
+function curve(d, w, h) {
+  const padL = 14, padR = 14, top = 44, bottom = 34, bars = 34;
+  const xs = i => padL + i * (w - padL - padR) / (d.hours.length - 1);
+  const ts = d.hours.map(p => p.t), lo = Math.min(...ts) - 4, hi = Math.max(...ts) + 2;
+  const y = t => top + (1 - (t - lo) / (hi - lo)) * (h - top - bottom - bars);
+  const pts = d.hours.map((p, i) => [xs(i), y(p.t)]);
+  // smooth path (catmull-rom -> bezier)
+  let path = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    path += ` C${p1[0] + (p2[0] - p0[0]) / 6},${p1[1] + (p2[1] - p0[1]) / 6} ${p2[0] - (p3[0] - p1[0]) / 6},${p2[1] - (p3[1] - p1[1]) / 6} ${p2[0]},${p2[1]}`;
+  }
+  const area = `${path} L${pts.at(-1)[0]},${h - bottom - bars} L${pts[0][0]},${h - bottom - bars} Z`;
+  const id = 'g' + Math.random().toString(36).slice(2, 7);
+  const base = h - bottom;
+  const rain = d.hours.map((p, i) => {
+    const bh = Math.max(p.r > 0 ? 3 : 0, p.r / 100 * bars);
+    return `<rect x="${xs(i) - 11}" y="${base - bh}" width="22" height="${bh}" rx="4" fill="#38bdf8" opacity="${0.35 + p.r / 160}"/>`;
+  }).join('');
+  const labels = d.hours.map((p, i) => i % 2 === 0
+    ? `<text class="dim" x="${xs(i)}" y="${h - 6}" text-anchor="middle">${p.h % 12 || 12} ${p.h < 12 ? 'AM' : 'PM'}</text>` : '').join('');
+  const pk = pts[d.peak];
+  return `<svg class="curve" viewBox="0 0 ${w} ${h}">
+    <defs>
+      <linearGradient id="${id}s" x1="0" x2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset=".55" stop-color="#facc15"/><stop offset="1" stop-color="#f97316"/></linearGradient>
+      <linearGradient id="${id}a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#facc15" stop-opacity=".22"/><stop offset="1" stop-color="#facc15" stop-opacity="0"/></linearGradient>
+    </defs>
+    <path d="${area}" fill="url(#${id}a)"/>
+    <path d="${path}" fill="none" stroke="url(#${id}s)" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="${pk[0]}" cy="${pk[1]}" r="7" fill="#facc15"/><circle cx="${pk[0]}" cy="${pk[1]}" r="15" fill="#facc15" opacity=".25"/>
+    <text class="peak" x="${pk[0]}" y="${pk[1] - 24}" text-anchor="middle">${d.hours[d.peak].t}°</text>
+    ${rain}${labels}
+    <text class="dim" x="${padL}" y="22">Temperature, with chance of rain below</text>
+  </svg>`;
+}
+
+function rows(d) {
+  const all = d.days.flatMap(r => [r[4], r[5]]), min = Math.min(...all), max = Math.max(...all), span = max - min;
+  return d.days.map(r => {
+    const [day, date, ic, cond, lo, hi, pop, , hz] = r;
+    const l = (lo - min) / span * 100, w = Math.max((hi - lo) / span * 100, 6);
+    return `<div class="row ${hz ? 'hazard' : ''}">
+      <div class="d"><strong>${day}</strong><span>${date}</span></div>
+      ${icon(ic)}
+      <div class="c">${cond}</div>
+      <div class="lo">${lo}°</div>
+      <div class="range"><i style="left:${l}%;width:${w}%"></i></div>
+      <div class="hi">${hi}°</div>
+      <div class="p">${icon('droplets', '')}${pop}%</div>
+    </div>`;
+  }).join('');
+}
+
+function header(d) {
+  return `<div class="top"><img src="../../assets/logo.png" alt="">
+    <div class="where"><strong>${d.place}</strong><span>${d.date}</span></div>
+    <div class="brand">EdgeWARN</div></div>`;
+}
+const alertBar = d => d.alert ? `<div class="alertbar">${icon('triangle-alert', '')}<div><b>${d.alert[0]}</b><span>${d.alert[1]}</span></div></div>` : '';
+const foot = d => `<div class="foot"><span>${d.foot[0]}</span><span>${d.foot[1]}</span></div>`;
+
+function portrait(d, kind) {
+  return `<div class="card card--${kind}" style="--w:1080;--h:1350">
+    ${header(d)}
+    <div><h2 class="headline">${d.headline}</h2>${d.alert ? '' : `<p class="sub">${d.sub}</p>`}</div>
+    ${alertBar(d)}
+    <div class="glass today"><div class="today-head"><strong>Today, hour by hour</strong><span>6 AM to 10 PM</span></div>${curve(d, 960, 250)}</div>
+    <div class="glass days">${rows(d)}</div>
+    ${foot(d)}
+  </div>`;
+}
+function wide(d, kind) {
+  return `<div class="card card--${kind} card--wide" style="--w:1280;--h:720">
+    <div class="left">${header(d)}<div><h2 class="headline">${d.headline}</h2>${d.alert ? '' : `<p class="sub">${d.sub}</p>`}</div>${alertBar(d)}${foot(d)}</div>
+    <div class="right">
+      <div class="glass today"><div class="today-head"><strong>Today, hour by hour</strong><span>6 AM to 10 PM</span></div>${curve(d, 640, 190)}</div>
+      <div class="glass days">${rows({ ...d, days: d.days.slice(0, 5) })}</div>
+    </div></div>`;
+}
+
+const mocks = [
+  { html: portrait(FAIR, 'fair'), w: 1080, h: 1350, s: .5, cap: 'A. Fair day, 1080 × 1350 for Instagram. The headline is a sentence written from the data, so the image reads at a glance. The hour curve shows today; the rows show the week on one shared temperature scale.' },
+  { html: portrait(STORM, 'storm'), w: 1080, h: 1350, s: .5, cap: 'B. Warning day. An active NWS or SPC product adds one banner in place of the supporting sentence, the glow shifts to violet and rose, and today’s row picks up a rose edge. Nothing else moves.' },
+  { html: wide(STORM, 'storm'), w: 1280, h: 720, s: .6, cap: 'C. Wide, 1280 × 720 for Discord embeds. Same content, five days, condition text dropped so the bars keep room.' },
+];
+document.getElementById('board').innerHTML = mocks.map(m =>
+  `<figure style="max-width:${m.w * m.s}px"><div class="frame" style="zoom:${m.s}">${m.html}</div><figcaption>${m.cap}</figcaption></figure>`).join('');
+</script>
+</body>
+</html>

@@ -1,35 +1,27 @@
 # EdgeWARN-Bot
-Automated alert bot with Discord/Instagram capabilities using the EdgeWARN and EWMRS APIs
+Automated weather bot with Discord/Instagram capabilities that generates daily forecast images from National Weather Service data
 
 Layout:
-- `src/backend/` holds the logic and rendering: the alert bulletin (`alerts/`), the daily forecast (`forecast/`), the data sources it reads (`sources/`: EdgeWARN, EWMRS, and the National Weather Service), the CLI, and the HTTP server.
+- `src/backend/` holds the logic and rendering: the daily forecast (`forecast/`), the data sources it reads (`sources/`: the National Weather Service and geocoding), the CLI, and the HTTP server.
 - `src/connectors/` is reserved for social media connectors and is empty for now.
 - `assets/` holds the Sora font files and logo used by the forecast image.
 - `design/mockups/` holds the forecast design mockups.
 
 Current MVP:
-- Fetches official EdgeWARN alerts from `api.edgewarn.ashk3000.com`
-- Pulls `CompRefQC` radar tiles from `ewmrs.edgewarn.ashk3000.com`
-- Renders a PNG with an unlabeled Carto basemap, visible CompRefQC tiles, and the alert polygon
 - Generates a daily forecast PNG (1080 × 1350) for any US place, today only (tomorrow when under four hours of today remain) from National Weather Service data
+
+The alert bulletin renderer (EdgeWARN alerts over EWMRS radar) has been removed for now. It is still in git history.
 
 Quick start:
 
 ```bash
 npm install
-npm run dev -- --alert-id "urn:oid:..."
 ```
-
-CLI options:
-- `--alert-id <id>`: render a specific alert; defaults to the first alert in the latest EdgeWARN timestamp
-- `--timestamp <YYYYMMDD-HHMMSS>`: force a specific EdgeWARN alert timestamp
-- `--output <file.png>`: write the PNG to a specific path
 
 Build output:
 
 ```bash
 npm run build
-npm start -- --output output/alert.png
 ```
 
 Daily forecast image:

@@ -1,13 +1,11 @@
 {
   "name": "edgewarn-bot",
   "version": "0.1.0",
-  "description": "EdgeWARN alert renderer with EWMRS overlays",
+  "description": "EdgeWARN daily forecast image generator",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "dev": "tsx src/backend/cli.ts",
-    "start": "node dist/backend/cli.js",
     "forecast": "tsx src/backend/forecast/cli.ts",
     "forecast:start": "node dist/backend/forecast/cli.js",
     "server:dev": "tsx src/backend/server.ts",

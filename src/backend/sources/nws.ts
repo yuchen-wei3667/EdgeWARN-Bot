@@ -1,6 +1,7 @@
 import type { HourlyPoint, NwsForecast } from "./types.js";
 
 const KMH_TO_MPH = 0.621371;
+const MM_TO_IN = 1 / 25.4;
 const MAX_ATTEMPTS = 3;
 
 interface PointsResponse {
@@ -19,6 +20,7 @@ interface HourlyResponse {
       temperature: number;
       isDaytime: boolean;
       probabilityOfPrecipitation?: { value: number | null };
+      relativeHumidity?: { value: number | null };
       windSpeed: string;
       windDirection: string;
       shortForecast: string;
@@ -26,8 +28,16 @@ interface HourlyResponse {
   };
 }
 
+interface GridSeries {
+  values: Array<{ validTime: string; value: number | null }>;
+}
+
 interface GridResponse {
-  properties: { windGust?: { values: Array<{ validTime: string; value: number | null }> } };
+  properties: {
+    windGust?: GridSeries;
+    quantitativePrecipitation?: GridSeries;
+    snowfallAmount?: GridSeries;
+  };
 }
 
 /** "5 to 10 mph" becomes 10, "14 mph" becomes 14. */
@@ -36,8 +46,11 @@ export const parseWindSpeed = (value: string): number => {
   return Math.max(...numbers);
 };
 
-/** Expands NWS grid values such as "2026-10-13T19:00:00+00:00/PT5H" into one entry per hour. */
-const gustsByHour = (values: Array<{ validTime: string; value: number | null }>): Map<number, number> => {
+/**
+ * Expands NWS grid values such as "2026-10-13T19:00:00+00:00/PT5H" into one entry per hour.
+ * Amounts (rain, snow) cover the whole span, so they are split evenly across its hours; rates (gusts) repeat.
+ */
+const seriesByHour = (values: GridSeries["values"], kind: "rate" | "amount"): Map<number, number> => {
   const byHour = new Map<number, number>();
   for (const { validTime, value } of values) {
     if (value === null) continue;
@@ -46,7 +59,7 @@ const gustsByHour = (values: Array<{ validTime: string; value: number | null }>)
     const hours = Number(duration.match(/(\d+)H/)?.[1] ?? 0) + days * 24;
     const startMs = Date.parse(start);
     for (let h = 0; h < hours; h += 1) {
-      byHour.set(startMs + h * 3_600_000, value * KMH_TO_MPH);
+      byHour.set(startMs + h * 3_600_000, kind === "amount" ? value / hours : value);
     }
   }
   return byHour;
@@ -93,7 +106,9 @@ export class NwsClient {
       this.getJson<HourlyResponse>(`${forecastHourly}?units=us`, "hourly forecast"),
       this.getJson<GridResponse>(forecastGridData, "forecast grid")
     ]);
-    const gusts = gustsByHour(grid.properties.windGust?.values ?? []);
+    const gusts = seriesByHour(grid.properties.windGust?.values ?? [], "rate");
+    const rain = seriesByHour(grid.properties.quantitativePrecipitation?.values ?? [], "amount");
+    const snow = seriesByHour(grid.properties.snowfallAmount?.values ?? [], "amount");
 
     const town = relativeLocation?.properties;
     return {
@@ -110,7 +125,10 @@ export class NwsClient {
           isDaytime: period.isDaytime,
           windSpeed,
           windDirection: period.windDirection,
-          gust: Math.max(windSpeed, Math.round(gusts.get(Date.parse(period.startTime)) ?? 0))
+          gust: Math.max(windSpeed, Math.round((gusts.get(Date.parse(period.startTime)) ?? 0) * KMH_TO_MPH)),
+          humidity: period.relativeHumidity?.value ?? 50,
+          rainIn: (rain.get(Date.parse(period.startTime)) ?? 0) * MM_TO_IN,
+          snowIn: (snow.get(Date.parse(period.startTime)) ?? 0) * MM_TO_IN
         };
       })
     };

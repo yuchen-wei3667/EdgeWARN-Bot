@@ -51,6 +51,26 @@ export interface DailyForecast {
   peakIndex: number;
   periods: DayPeriod[];
   stats: DayStats;
+  /** Set when the day carries a severe storm, flood, heat, or winter risk. */
+  hazard?: Hazard;
+  /** True for made-up data used to preview designs. */
+  sample?: boolean;
   /** Short note on when the image was made, such as "Made Oct 14, 6:00 AM CDT". */
   madeLabel: string;
+}
+
+export type HazardKind = "severe" | "flood" | "heat" | "winter";
+export type HazardLevel = "Elevated" | "High" | "Extreme";
+
+/** A weather risk worth calling out, worked out from the hourly forecast. It is not an official NWS warning. */
+export interface Hazard {
+  kind: HazardKind;
+  level: HazardLevel;
+  /** Badge text, such as "Severe storm risk". */
+  label: string;
+  headline: string;
+  detail: string;
+  sky: Sky;
+  /** Replaces the "Chance of rain" tile with the figure that matters for this hazard. */
+  stat: { label: string; value: string; note: string };
 }

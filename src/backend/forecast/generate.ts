@@ -1,6 +1,7 @@
 import { NwsClient } from "../sources/nws.js";
-import type { HourlyPoint, Place } from "../sources/types.js";
+import type { HourlyPoint, NwsForecast, Place } from "../sources/types.js";
 import { describeHour, describeSignificant } from "./conditions.js";
+import { detectHazard } from "./hazards.js";
 import { MIN_HOURS, dayWindow, formatHour, hourOf, summarizeToday } from "./summarize.js";
 import type { DailyForecast, DayPeriod } from "./types.js";
 
@@ -44,9 +45,11 @@ export const generateDailyForecast = async (
   client: NwsClient,
   place: Place,
   now: Date = new Date()
-): Promise<DailyForecast> => {
-  const forecast = await client.getForecast(place.latitude, place.longitude);
+): Promise<DailyForecast> =>
+  buildDailyForecast(await client.getForecast(place.latitude, place.longitude), place, now);
 
+/** The pure half of generateDailyForecast: turns an NWS forecast into graphic data. */
+export const buildDailyForecast = (forecast: NwsForecast, place: Place, now: Date): DailyForecast => {
   const today = dateKey(now, forecast.timezone);
   const dates = [...new Set(forecast.hourly.map((p) => p.time.slice(0, 10)))].filter((d) => d >= today);
   const date = dates.find((d) => dayWindow(forecast.hourly, d).length >= MIN_HOURS);
@@ -56,7 +59,9 @@ export const generateDailyForecast = async (
 
   const window = dayWindow(forecast.hourly, date);
   const dayName = date === today ? "Today" : "Tomorrow";
-  const summary = summarizeToday(window, dayName === "Today" ? "today" : "tomorrow");
+  const base = summarizeToday(window, dayName === "Today" ? "today" : "tomorrow");
+  const hazard = detectHazard(window) ?? undefined;
+  const summary = hazard ? { headline: hazard.headline, detail: hazard.detail, sky: hazard.sky } : base;
   const hours = window.map((p) => ({ hour: hourOf(p.time), temperature: p.temperature, precipChance: p.precipChance }));
   const indexOfBest = (better: (a: number, b: number) => boolean) =>
     hours.reduce((best, h, i) => (better(h.temperature, hours[best].temperature) ? i : best), 0);
@@ -82,6 +87,7 @@ export const generateDailyForecast = async (
     headline: summary.headline,
     detail: summary.detail,
     sky: summary.sky,
+    hazard,
     windowLabel: `${formatHour(hourOf(window[0].time))} to ${formatHour(hourOf(window[window.length - 1].time))}`,
     hours,
     peakIndex,

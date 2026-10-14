@@ -67,6 +67,12 @@ export interface HourlyPoint {
   windDirection: string;
   /** Gust in mph, never lower than the sustained wind. */
   gust: number;
+  /** Relative humidity, 0-100. */
+  humidity: number;
+  /** Liquid precipitation expected in this hour, in inches. */
+  rainIn: number;
+  /** Snowfall expected in this hour, in inches. */
+  snowIn: number;
 }
 
 export interface NwsForecast {

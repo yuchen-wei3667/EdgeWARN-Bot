@@ -4,7 +4,7 @@ import sharp from "sharp";
 import { ASSETS_DIR, registerFonts } from "./fonts.js";
 import { ICONS } from "./icons.js";
 import { formatHour } from "./summarize.js";
-import type { DailyForecast, Sky } from "./types.js";
+import type { DailyForecast, HazardKind, Sky } from "./types.js";
 
 export const FORECAST_WIDTH = 1080;
 export const FORECAST_HEIGHT = 1350;
@@ -29,6 +29,44 @@ const GLOWS: Record<Sky, [string, string]> = {
   snow: ["rgba(186,230,253,0.22)", "rgba(148,163,184,0.12)"],
   thunder: ["rgba(167,139,250,0.26)", "rgba(251,113,133,0.16)"]
 };
+
+interface HazardTheme {
+  accent: string;
+  glow: [string, string];
+  /** Left, middle, and right colors of the temperature line. */
+  curve: [string, string, string];
+  peak: string;
+}
+
+// Each hazard recolors the glows and the temperature line, while the layout stays the same.
+const HAZARD_THEMES: Record<HazardKind, HazardTheme> = {
+  severe: {
+    accent: "#a78bfa",
+    glow: ["rgba(167,139,250,0.30)", "rgba(251,113,133,0.20)"],
+    curve: ["#38bdf8", "#a78bfa", "#fb7185"],
+    peak: "#fb7185"
+  },
+  flood: {
+    accent: "#38bdf8",
+    glow: ["rgba(37,99,235,0.32)", "rgba(103,232,249,0.16)"],
+    curve: ["#67e8f9", "#38bdf8", "#3b82f6"],
+    peak: "#67e8f9"
+  },
+  heat: {
+    accent: "#f97316",
+    glow: ["rgba(239,68,68,0.28)", "rgba(250,204,21,0.20)"],
+    curve: ["#facc15", "#f97316", "#ef4444"],
+    peak: "#ef4444"
+  },
+  winter: {
+    accent: "#bae6fd",
+    glow: ["rgba(186,230,253,0.26)", "rgba(129,140,248,0.18)"],
+    curve: ["#e0f2fe", "#93c5fd", "#818cf8"],
+    peak: "#e0f2fe"
+  }
+};
+
+const DEFAULT_CURVE: [string, string, string] = ["#38bdf8", "#facc15", "#f97316"];
 
 const MARGIN = 60;
 const CONTENT_WIDTH = FORECAST_WIDTH - MARGIN * 2;
@@ -87,6 +125,7 @@ export const wrapText = (value: string, maxChars: number): string[] => {
 
 const buildCurve = (forecast: DailyForecast, top: number): string => {
   const { hours, peakIndex } = forecast;
+  const peakColor = forecast.hazard ? HAZARD_THEMES[forecast.hazard.kind].peak : COLORS.amber;
   const left = MARGIN + 38;
   const right = FORECAST_WIDTH - MARGIN - 38;
   const plotTop = top + 120;
@@ -129,11 +168,15 @@ const buildCurve = (forecast: DailyForecast, top: number): string => {
   return `
     <path d="${area}" fill="url(#area)"/>
     <path d="${line}" fill="none" stroke="url(#stroke)" stroke-width="5" stroke-linecap="round"/>
-    <circle cx="${peak[0]}" cy="${peak[1]}" r="15" fill="${COLORS.amber}" opacity="0.25"/>
-    <circle cx="${peak[0]}" cy="${peak[1]}" r="7" fill="${COLORS.amber}"/>
+    <circle cx="${peak[0]}" cy="${peak[1]}" r="15" fill="${peakColor}" opacity="0.25"/>
+    <circle cx="${peak[0]}" cy="${peak[1]}" r="7" fill="${peakColor}"/>
     ${text(peak[0], peak[1] - 26, `${Math.round(hours[peakIndex].temperature)}°`, 26, 700, COLORS.text, "middle")}
     ${bars}${labels}`;
 };
+
+/** "ice" for freezing rain or sleet, "snow" for other wintry weather, and "rain" when no wintry text is given. */
+const precipWord = (wintryCondition: string): string =>
+  !wintryCondition ? "rain" : /freezing|ice|sleet/i.test(wintryCondition) ? "ice" : "snow";
 
 const buildPeriods = (forecast: DailyForecast, top: number, width: number): string => {
   const column = width / forecast.periods.length;
@@ -149,7 +192,7 @@ const buildPeriods = (forecast: DailyForecast, top: number, width: number): stri
       ${text(x, top + 134, p.condition.length > 24 ? `${p.condition.slice(0, 23)}…` : p.condition, 21, 400, COLORS.text2)}
       ${text(x, top + 182, range, 32, 700, COLORS.text)}
       ${icon("droplets", x, top + 201, 18, COLORS.sky, 2)}
-      ${text(x + 28, top + 217, `${p.precipChance}% chance of rain`, 18, 400, COLORS.sky)}`;
+      ${text(x + 28, top + 217, `${p.precipChance}% chance of ${precipWord(p.icon === "snowflake" ? p.condition : "")}`, 18, 400, COLORS.sky)}`;
     })
     .join("");
 };
@@ -159,7 +202,11 @@ const buildStats = (forecast: DailyForecast, top: number, width: number): string
   const items = [
     { label: "High", value: `${stats.high}°`, note: `around ${formatHour(stats.highHour)}` },
     { label: "Low", value: `${stats.low}°`, note: `around ${formatHour(stats.lowHour)}` },
-    { label: "Chance of rain", value: `${stats.precipChance}%`, note: `at any point ${forecast.dayName.toLowerCase()}` },
+    forecast.hazard?.stat ?? {
+      label: "Chance of rain",
+      value: `${stats.precipChance}%`,
+      note: `at any point ${forecast.dayName.toLowerCase()}`
+    },
     {
       label: "Wind",
       value: `${stats.windDirection} ${stats.windSpeed}`,
@@ -180,10 +227,13 @@ const buildStats = (forecast: DailyForecast, top: number, width: number): string
 };
 
 export const buildForecastSvg = (forecast: DailyForecast, logoDataUri: string): string => {
-  const [glowA, glowB] = GLOWS[forecast.sky];
+  const { hazard } = forecast;
+  const theme = hazard ? HAZARD_THEMES[hazard.kind] : undefined;
+  const [glowA, glowB] = theme ? theme.glow : GLOWS[forecast.sky];
+  const [curveA, curveB, curveC] = theme ? theme.curve : DEFAULT_CURVE;
   // Keep the headline to two lines: shrink the type before adding a third line, which would collide with the chart.
   let headlineSize = 62;
-  let headlineLines = wrapText(forecast.headline, 30);
+  let headlineLines = wrapText(forecast.headline, 28);
   if (headlineLines.length > 2) {
     headlineSize = 52;
     headlineLines = wrapText(forecast.headline, 36);
@@ -209,9 +259,9 @@ export const buildForecastSvg = (forecast: DailyForecast, logoDataUri: string): 
     <radialGradient id="glowB" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(86 460) scale(650 420)"><stop offset="0" stop-color="${glowB}"/><stop offset="1" stop-color="${glowB}" stop-opacity="0"/></radialGradient>
     <radialGradient id="vignette" gradientUnits="userSpaceOnUse" cx="540" cy="675" r="900"><stop offset="0.4" stop-color="${COLORS.bg}" stop-opacity="0"/><stop offset="1" stop-color="${COLORS.bg}"/></radialGradient>
     <linearGradient id="glass" x1="0" y1="0" x2="1" y2="0.6"><stop offset="0" stop-color="rgb(255,255,255)" stop-opacity="0.06"/><stop offset="0.4" stop-color="rgb(5,18,32)" stop-opacity="0.46"/><stop offset="1" stop-color="rgb(5,18,32)" stop-opacity="0.46"/></linearGradient>
-    <linearGradient id="stroke" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#38bdf8"/><stop offset="0.55" stop-color="#facc15"/><stop offset="1" stop-color="#f97316"/></linearGradient>
+    <linearGradient id="stroke" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="${curveA}"/><stop offset="0.55" stop-color="${curveB}"/><stop offset="1" stop-color="${curveC}"/></linearGradient>
     <linearGradient id="range" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#38bdf8"/><stop offset="0.52" stop-color="#facc15"/><stop offset="1" stop-color="#f97316"/></linearGradient>
-    <linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${COLORS.amber}" stop-opacity="0.22"/><stop offset="1" stop-color="${COLORS.amber}" stop-opacity="0"/></linearGradient>
+    <linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${curveB}" stop-opacity="0.22"/><stop offset="1" stop-color="${curveB}" stop-opacity="0"/></linearGradient>
     <clipPath id="logo"><rect x="${MARGIN}" y="56" width="56" height="56" rx="14"/></clipPath>
   </defs>
   <rect width="${FORECAST_WIDTH}" height="${FORECAST_HEIGHT}" fill="${COLORS.bg}"/>
@@ -230,7 +280,7 @@ export const buildForecastSvg = (forecast: DailyForecast, logoDataUri: string): 
   <rect x="${MARGIN}" y="${panelTop}" width="${CONTENT_WIDTH}" height="${panelHeight}" rx="20" ${glassFill}/>
   ${text(MARGIN + 28, panelTop + 46, `${forecast.dayName}, hour by hour`, 22, 600, COLORS.text)}
   ${text(FORECAST_WIDTH - MARGIN - 28, panelTop + 46, forecast.windowLabel, 18, 400, COLORS.muted, "end")}
-  ${text(MARGIN + 28, panelTop + 76, "Temperature, with chance of rain below", 17, 400, COLORS.muted)}
+  ${text(MARGIN + 28, panelTop + 76, `Temperature, with chance of ${forecast.hazard?.kind === "winter" ? "snow or ice" : "rain"} below`, 17, 400, COLORS.muted)}
   ${buildCurve(forecast, panelTop)}
 
   <rect x="${MARGIN}" y="${periodsTop}" width="${CONTENT_WIDTH}" height="${periodsHeight}" rx="20" ${glassFill}/>
@@ -239,7 +289,7 @@ export const buildForecastSvg = (forecast: DailyForecast, logoDataUri: string): 
   <rect x="${MARGIN}" y="${statsTop}" width="${CONTENT_WIDTH}" height="${statsHeight}" rx="20" ${glassFill}/>
   ${buildStats(forecast, statsTop, CONTENT_WIDTH)}
 
-  ${text(MARGIN, FORECAST_HEIGHT - 52, "Forecast data: National Weather Service", 17, 400, COLORS.muted)}
+  ${text(MARGIN, FORECAST_HEIGHT - 52, forecast.sample ? "Sample data for design preview" : hazard ? "NWS forecast data. Not an official warning." : "Forecast data: National Weather Service", 17, 400, COLORS.muted)}
   ${text(FORECAST_WIDTH - MARGIN, FORECAST_HEIGHT - 52, forecast.madeLabel, 17, 400, COLORS.muted, "end")}
 </svg>`;
 };

@@ -37,7 +37,10 @@ Daily forecast image:
 ```bash
 npm run forecast -- --place "Oklahoma City, OK" --output output/forecast.png
 npm run forecast -- --lat 39.74 --lon -104.99 --name "Denver, CO"
+npm run forecast -- --samples   # hazard previews from made-up data, in output/samples
 ```
+When the day carries a severe storm, flood, heat, or winter risk, the graphic gets its own colors and a hazard-specific stat. Risks are worked out from the NWS hourly forecast (gusts, rain and snow totals, heat index, ice), so they are not official warnings.
+
 
 HTTP server:
 

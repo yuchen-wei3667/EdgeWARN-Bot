@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { ASSETS_DIR, registerFonts } from "./fonts.js";
+import { buildBackground } from "./background.js";
 import { ICONS } from "./icons.js";
 import { formatHour } from "./summarize.js";
 import type { DailyForecast, HazardKind, Sky } from "./types.js";
@@ -174,10 +175,6 @@ const buildCurve = (forecast: DailyForecast, top: number): string => {
     ${bars}${labels}`;
 };
 
-/** "ice" for freezing rain or sleet, "snow" for other wintry weather, and "rain" when no wintry text is given. */
-const precipWord = (wintryCondition: string): string =>
-  !wintryCondition ? "rain" : /freezing|ice|sleet/i.test(wintryCondition) ? "ice" : "snow";
-
 const buildPeriods = (forecast: DailyForecast, top: number, width: number): string => {
   const column = width / forecast.periods.length;
   return forecast.periods
@@ -192,14 +189,24 @@ const buildPeriods = (forecast: DailyForecast, top: number, width: number): stri
       ${text(x, top + 134, p.condition.length > 24 ? `${p.condition.slice(0, 23)}…` : p.condition, 21, 400, COLORS.text2)}
       ${text(x, top + 182, range, 32, 700, COLORS.text)}
       ${icon("droplets", x, top + 201, 18, COLORS.sky, 2)}
-      ${text(x + 28, top + 217, `${p.precipChance}% chance of ${precipWord(p.icon === "snowflake" ? p.condition : "")}`, 18, 400, COLORS.sky)}`;
+      ${text(x + 28, top + 217, `${p.precipChance}%`, 18, 400, COLORS.sky)}`;
     })
     .join("");
 };
 
+const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+
+/** An arrow showing where the wind blows toward. Wind directions name their source, so a south wind points up. */
+const windArrow = (direction: string, cx: number, cy: number, size: number): string => {
+  const index = COMPASS.indexOf(direction.toUpperCase());
+  const from = index < 0 ? 0 : index * 22.5;
+  const half = size / 2;
+  return `<g transform="translate(${cx} ${cy}) rotate(${(from + 180) % 360})" fill="none" stroke="${COLORS.cyan}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="0" y1="${half}" x2="0" y2="${-half}"/><polyline points="${-half * 0.55},${-half * 0.1} 0,${-half} ${half * 0.55},${-half * 0.1}"/></g>`;
+};
+
 const buildStats = (forecast: DailyForecast, top: number, width: number): string => {
   const { stats } = forecast;
-  const items = [
+  const items: { label: string; value: string; note: string; windDirection?: string }[] = [
     { label: "High", value: `${stats.high}°`, note: `around ${formatHour(stats.highHour)}` },
     { label: "Low", value: `${stats.low}°`, note: `around ${formatHour(stats.lowHour)}` },
     forecast.hazard?.stat ?? {
@@ -209,7 +216,8 @@ const buildStats = (forecast: DailyForecast, top: number, width: number): string
     },
     {
       label: "Wind",
-      value: `${stats.windDirection} ${stats.windSpeed}`,
+      windDirection: stats.windDirection,
+      value: `${stats.windSpeed}`,
       note: stats.gust > stats.windSpeed ? `mph, gusts to ${stats.gust}` : "mph"
     }
   ];
@@ -220,7 +228,7 @@ const buildStats = (forecast: DailyForecast, top: number, width: number): string
       return `
       ${i > 0 ? `<line x1="${MARGIN + i * column}" x2="${MARGIN + i * column}" y1="${top + 24}" y2="${top + 106}" stroke="rgba(224,243,255,0.10)"/>` : ""}
       ${text(x, top + 42, item.label, 17, 400, COLORS.muted)}
-      ${text(x, top + 86, item.value, 36, 700, COLORS.text)}
+      ${item.windDirection ? `${windArrow(item.windDirection, x + 16, top + 72, 34)}${text(x + 44, top + 86, item.value, 36, 700, COLORS.text)}` : text(x, top + 86, item.value, 36, 700, COLORS.text)}
       ${text(x, top + 112, item.note, 16, 400, COLORS.muted)}`;
     })
     .join("");
@@ -251,20 +259,21 @@ export const buildForecastSvg = (forecast: DailyForecast, logoDataUri: string): 
   const statsTop = 1102;
   const statsHeight = 134;
 
+  const background = buildBackground(forecast, FORECAST_WIDTH, FORECAST_HEIGHT, COLORS.bg);
   const glassFill = `fill="url(#glass)" stroke="rgba(224,243,255,0.14)"`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${FORECAST_WIDTH}" height="${FORECAST_HEIGHT}" viewBox="0 0 ${FORECAST_WIDTH} ${FORECAST_HEIGHT}">
-  <defs>
+  <defs>${background.defs}
     <radialGradient id="glowA" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(886 80) scale(760 520)"><stop offset="0" stop-color="${glowA}"/><stop offset="1" stop-color="${glowA}" stop-opacity="0"/></radialGradient>
     <radialGradient id="glowB" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(86 460) scale(650 420)"><stop offset="0" stop-color="${glowB}"/><stop offset="1" stop-color="${glowB}" stop-opacity="0"/></radialGradient>
     <radialGradient id="vignette" gradientUnits="userSpaceOnUse" cx="540" cy="675" r="900"><stop offset="0.4" stop-color="${COLORS.bg}" stop-opacity="0"/><stop offset="1" stop-color="${COLORS.bg}"/></radialGradient>
-    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="0.6"><stop offset="0" stop-color="rgb(255,255,255)" stop-opacity="0.06"/><stop offset="0.4" stop-color="rgb(5,18,32)" stop-opacity="0.46"/><stop offset="1" stop-color="rgb(5,18,32)" stop-opacity="0.46"/></linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="0.6"><stop offset="0" stop-color="rgb(5,18,32)" stop-opacity="0.72"/><stop offset="1" stop-color="rgb(5,18,32)" stop-opacity="0.72"/></linearGradient>
     <linearGradient id="stroke" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="${curveA}"/><stop offset="0.55" stop-color="${curveB}"/><stop offset="1" stop-color="${curveC}"/></linearGradient>
     <linearGradient id="range" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#38bdf8"/><stop offset="0.52" stop-color="#facc15"/><stop offset="1" stop-color="#f97316"/></linearGradient>
     <linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${curveB}" stop-opacity="0.22"/><stop offset="1" stop-color="${curveB}" stop-opacity="0"/></linearGradient>
     <clipPath id="logo"><rect x="${MARGIN}" y="56" width="56" height="56" rx="14"/></clipPath>
   </defs>
-  <rect width="${FORECAST_WIDTH}" height="${FORECAST_HEIGHT}" fill="${COLORS.bg}"/>
+  ${background.body}
   <rect width="${FORECAST_WIDTH}" height="${FORECAST_HEIGHT}" fill="url(#glowA)"/>
   <rect width="${FORECAST_WIDTH}" height="${FORECAST_HEIGHT}" fill="url(#glowB)"/>
   <rect width="${FORECAST_WIDTH}" height="${FORECAST_HEIGHT}" fill="url(#vignette)"/>

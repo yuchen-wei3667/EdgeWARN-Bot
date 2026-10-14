@@ -1,16 +1,13 @@
 # EdgeWARN-Bot
-Automated weather bot with Discord/Instagram capabilities that generates daily forecast images from National Weather Service data
+Automated weather bot with Discord/Instagram capabilities that generates forecast images from the EdgeWARN website dashboard
 
 Layout:
-- `src/backend/` holds the logic and rendering: the daily forecast (`forecast/`), the data sources it reads (`sources/`: the National Weather Service and geocoding), the CLI, and the HTTP server.
+- `src/backend/` holds the forecast image (`forecast/`), place lookup (`sources/`), the CLI, and the HTTP server.
 - `src/connectors/` is reserved for social media connectors and is empty for now.
-- `assets/` holds the Sora font files and logo used by the forecast image.
-- `design/mockups/` holds the forecast design mockups.
+- `assets/` holds the EdgeWARN logo.
 
 Current MVP:
-- Generates a daily forecast PNG (1080 × 1350) for any US place, today only (tomorrow when under four hours of today remain) from National Weather Service data
-
-The alert bulletin renderer (EdgeWARN alerts over EWMRS radar) has been removed for now. It is still in git history.
+- Screenshots the website dashboard for any US place, cropped to the current conditions card and the 12-hour strip. The sidebar, header, banners, radar, and outlooks are left out.
 
 Quick start:
 
@@ -29,10 +26,9 @@ Daily forecast image:
 ```bash
 npm run forecast -- --place "Oklahoma City, OK" --output output/forecast.png
 npm run forecast -- --lat 39.74 --lon -104.99 --name "Denver, CO"
-npm run forecast -- --samples   # hazard previews from made-up data, in output/samples
 ```
-When the day carries a severe storm, flood, heat, or winter risk, the graphic gets its own colors and a hazard-specific stat. Risks are worked out from the NWS hourly forecast (gusts, rain and snow totals, heat index, ice), so they are not official warnings.
 
+The image comes from `/dashboard?location=<lat>,<lon>` on the website, loaded in headless Chromium. Set `WEBSITE_URL` (default `https://edgewarn.ashk3000.com`) and `CHROME_PATH` (default `/usr/bin/chromium`) to change either.
 
 HTTP server:
 
@@ -40,6 +36,14 @@ HTTP server:
 npm run server:dev
 ```
 
-The server listens on `http://0.0.0.0:6767` by default.
+The server listens on `http://0.0.0.0:6767` by default and returns the image at `/forecast.png?place=Oklahoma%20City,%20OK` (or `?lat=..&lon=..&name=..`).
 
-The server also returns the daily forecast image at `/forecast.png?place=Oklahoma%20City,%20OK` (or `?lat=..&lon=..&name=..`).
+## Instagram posting
+
+`src/connectors/ig` publishes images to Instagram as feed posts or stories through the Instagram Graph API (Instagram Login).
+
+1. Create a Meta app with Instagram Login and the `instagram_business_content_publish` permission, then generate a long-lived token.
+2. Set `IG_ACCESS_TOKEN`, `IG_USER_ID`, and `PUBLIC_BASE_URL` (the HTTPS address Instagram can reach this server at) in `.env`.
+3. Run `npm run server:dev`, then `npm run ig -- --kind story --forecast "Oklahoma City, OK"` or `--kind feed --caption "..."`.
+
+Instagram fetches the image by URL, so the server's `/media/<name>.jpg` route serves the rendered JPEGs from `OUTPUT_DIR`. Stories do not take captions.

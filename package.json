@@ -7,6 +7,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "forecast": "tsx src/backend/forecast/cli.ts",
+    "ig": "tsx src/connectors/ig/cli.ts",
+    "ig:start": "node dist/connectors/ig/cli.js",
     "forecast:start": "node dist/backend/forecast/cli.js",
     "server:dev": "tsx src/backend/server.ts",
     "server:start": "node dist/backend/server.js"
@@ -16,7 +18,7 @@
   },
   "dependencies": {
     "dotenv": "^16.4.7",
-    "sharp": "^0.34.2"
+    "puppeteer-core": "^25.13.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.1",

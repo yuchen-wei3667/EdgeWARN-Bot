@@ -1,11 +1,11 @@
+import fs from "node:fs/promises";
 import http from "node:http";
+import path from "node:path";
 import { config } from "../config.js";
 import { GeocodingClient } from "./sources/geocoding.js";
-import { NwsClient } from "./sources/nws.js";
 import { resolveForecastImage } from "./forecast/index.js";
 
 const forecastClients = {
-  nws: new NwsClient(config.nwsApi, config.nwsUserAgent),
   geocoding: new GeocodingClient(config.geocodingApi)
 };
 
@@ -26,7 +26,7 @@ const requestListener = async (request: http.IncomingMessage, response: http.Ser
         service: "edgewarn-bot-server",
         secure: false,
         port: config.serverPort,
-        endpoints: ["/", "/health", "/forecast.png?place=<city, state>"]
+        endpoints: ["/", "/health", "/forecast.png?place=<city, state>", "/media/<name>.jpg"]
       })
     );
     return;
@@ -42,7 +42,7 @@ const requestListener = async (request: http.IncomingMessage, response: http.Ser
     const lat = url.searchParams.get("lat");
     const lon = url.searchParams.get("lon");
     try {
-      const { png } = await resolveForecastImage(forecastClients, {
+      const png = await resolveForecastImage(forecastClients, {
         place: url.searchParams.get("place") ?? undefined,
         lat: lat === null ? undefined : Number(lat),
         lon: lon === null ? undefined : Number(lon),
@@ -57,6 +57,20 @@ const requestListener = async (request: http.IncomingMessage, response: http.Ser
       response.end(json({ ok: false, error: error instanceof Error ? error.message : String(error) }, 400));
     }
     return;
+  }
+
+  // Serves generated JPEGs from the output directory so Instagram can fetch them by URL.
+  const media = method === "GET" ? /^\/media\/([\w-]+(?:\.[\w-]+)*\.jpe?g)$/i.exec(url.pathname) : null;
+  if (media) {
+    try {
+      const jpeg = await fs.readFile(path.join(config.outputDir, media[1]));
+      response.setHeader("Content-Type", "image/jpeg");
+      response.writeHead(200);
+      response.end(jpeg);
+      return;
+    } catch {
+      // Falls through to the 404 below.
+    }
   }
 
   response.writeHead(404);

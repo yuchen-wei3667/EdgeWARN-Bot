@@ -1,9 +1,6 @@
 import type { GeocodingClient } from "../sources/geocoding.js";
-import type { NwsClient } from "../sources/nws.js";
 import type { Place } from "../sources/types.js";
-import { generateDailyForecast } from "./generate.js";
-import { renderForecastImage } from "./render.js";
-import type { DailyForecast } from "./types.js";
+import { renderDashboardImage, type RenderOptions } from "./webview.js";
 
 export interface ForecastRequest {
   place?: string;
@@ -13,7 +10,6 @@ export interface ForecastRequest {
 }
 
 export interface ForecastClients {
-  nws: NwsClient;
   geocoding: GeocodingClient;
 }
 
@@ -35,12 +31,9 @@ const resolvePlace = async (clients: ForecastClients, request: ForecastRequest):
   return clients.geocoding.findPlace(request.place);
 };
 
-/** Looks up the place, builds the forecast, and draws it. */
+/** Looks up the place and screenshots the website dashboard's forecast for it. */
 export const resolveForecastImage = async (
   clients: ForecastClients,
-  request: ForecastRequest
-): Promise<{ png: Buffer; forecast: DailyForecast }> => {
-  const place = await resolvePlace(clients, request);
-  const forecast = await generateDailyForecast(clients.nws, place);
-  return { png: await renderForecastImage(forecast), forecast };
-};
+  request: ForecastRequest,
+  options?: RenderOptions
+): Promise<Buffer> => renderDashboardImage(await resolvePlace(clients, request), options);

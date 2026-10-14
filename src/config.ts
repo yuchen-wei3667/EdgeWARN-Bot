@@ -9,11 +9,15 @@ const toPositiveInt = (value: string | undefined, fallback: number): number => {
 };
 
 export const config = {
-  nwsApi: process.env.NWS_API ?? "https://api.weather.gov",
-  // The NWS asks every client to identify itself. Add a contact URL or email through the environment.
-  nwsUserAgent: process.env.NWS_USER_AGENT ?? "EdgeWARN-Bot (github.com/yuchen-wei3667/EdgeWARN-Bot)",
+  // The website whose dashboard the forecast image screenshots, and the Chromium that loads it.
+  websiteUrl: process.env.WEBSITE_URL ?? "https://edgewarn.ashk3000.com",
+  chromePath: process.env.CHROME_PATH ?? "/usr/bin/chromium",
   geocodingApi: process.env.GEOCODING_API ?? "https://geocoding-api.open-meteo.com",
   outputDir: path.resolve(process.cwd(), process.env.OUTPUT_DIR ?? "output"),
   serverHost: process.env.SERVER_HOST ?? "0.0.0.0",
-  serverPort: toPositiveInt(process.env.SERVER_PORT, 6767)
+  serverPort: toPositiveInt(process.env.SERVER_PORT, 6767),
+  // Instagram publishing. Instagram fetches images from publicBaseUrl, so it must reach this server over HTTPS.
+  igAccessToken: process.env.IG_ACCESS_TOKEN,
+  igUserId: process.env.IG_USER_ID,
+  publicBaseUrl: process.env.PUBLIC_BASE_URL
 } as const;

@@ -11,7 +11,7 @@ const USPS: Record<string, string> = {
   Wisconsin: "WI", Wyoming: "WY", "District of Columbia": "DC"
 };
 
-/** Turns a place name into coordinates. The NWS API has no name search, so this uses Open-Meteo's free geocoder. */
+/** Turns a place name into coordinates. This uses Open-Meteo's free geocoder. */
 export class GeocodingClient {
   constructor(private readonly baseUrl: string) {}
 

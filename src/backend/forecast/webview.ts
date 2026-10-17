@@ -9,6 +9,7 @@ const VIEWPORT_WIDTH = 1440;
 const VIEWPORT_HEIGHT = 3000;
 const SCALE = 2;
 const PADDING = 48;
+const CROP_PADDING = 24;
 const LOGO_SIZE = 64;
 const HEADER_GAP = 32;
 const HEADER_HEIGHT = LOGO_SIZE + HEADER_GAP;
@@ -104,8 +105,8 @@ export const renderDashboardImage = async (place: Place, options: RenderOptions 
     const logo = (await fs.readFile(LOGO_PATH)).toString("base64");
     const title = `${TITLE} - ${await localDateLabel(place)}`;
 
-    let width = Math.ceil(content.width) + PADDING * 2;
-    let height = Math.ceil(content.height) + HEADER_HEIGHT + PADDING * 2;
+    let width = Math.ceil(content.width) + (PADDING + CROP_PADDING) * 2;
+    let height = Math.ceil(content.height) + HEADER_HEIGHT + (PADDING + CROP_PADDING) * 2;
     // Pad out to the wanted aspect ratio. The title bar and capture stay centered on the extra space.
     if (options.aspect) {
       if (width / height > options.aspect) height = Math.ceil(width / options.aspect);
@@ -125,10 +126,10 @@ export const renderDashboardImage = async (place: Place, options: RenderOptions 
         const overlay = document.createElement("div");
         overlay.style.cssText = `position:fixed;left:0;top:0;width:${frame.width}px;height:${frame.height}px;z-index:2147483647;box-sizing:border-box;padding:${frame.padding}px;background:${frame.background};font-family:Sora,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;`;
         overlay.innerHTML =
-          `<div style="width:${frame.contentWidth}px"><div style="display:flex;align-items:center;gap:20px;height:${frame.logoSize}px;margin-bottom:${frame.gap}px">` +
+          `<div style="width:${frame.contentWidth + frame.cropPadding * 2}px"><div style="display:flex;align-items:center;gap:20px;height:${frame.logoSize}px;margin-bottom:${frame.gap}px">` +
           `<img alt="" width="${frame.logoSize}" height="${frame.logoSize}" style="border-radius:16px" src="data:image/png;base64,${frame.logo}">` +
           `<div style="color:#f8fbff;font-size:40px;font-weight:700;letter-spacing:-0.01em"></div></div>` +
-          `<img alt="" style="display:block" width="${frame.contentWidth}" height="${frame.contentHeight}" src="data:image/png;base64,${frame.capture}"></div>`;
+          `<div style="padding:${frame.cropPadding}px"><img alt="" style="display:block" width="${frame.contentWidth}" height="${frame.contentHeight}" src="data:image/png;base64,${frame.capture}"></div></div>`;
         overlay.querySelector(":scope > div > div > div")!.textContent = frame.title;
         document.body.append(overlay);
         await document.fonts.ready;
@@ -138,6 +139,7 @@ export const renderDashboardImage = async (place: Place, options: RenderOptions 
         width,
         height,
         padding: PADDING,
+        cropPadding: CROP_PADDING,
         background,
         logoSize: LOGO_SIZE,
         gap: HEADER_GAP,

@@ -11,6 +11,8 @@ const toPositiveInt = (value: string | undefined, fallback: number): number => {
 export const config = {
   // The website whose dashboard the forecast image screenshots, and the Chromium that loads it.
   websiteUrl: process.env.WEBSITE_URL ?? "https://edgewarn.ashk3000.com",
+  // Bearer key for the website's /automation/daily route. Must match the website's AUTOMATION_API_KEY.
+  automationApiKey: process.env.AUTOMATION_API_KEY,
   chromePath: process.env.CHROME_PATH ?? "/usr/bin/chromium",
   geocodingApi: process.env.GEOCODING_API ?? "https://geocoding-api.open-meteo.com",
   outputDir: path.resolve(process.cwd(), process.env.OUTPUT_DIR ?? "output"),

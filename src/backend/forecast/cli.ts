@@ -2,11 +2,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { config } from "../../config.js";
 import { GeocodingClient } from "../sources/geocoding.js";
-import { resolveForecastImage } from "./index.js";
+import { fetchDailyCard } from "./automation.js";
+import { resolvePlace } from "./index.js";
 
 const printUsage = (): void => {
-  console.log(`Usage: npm run forecast -- --place "Oklahoma City, OK" [--output <file.png>]
-       npm run forecast -- --lat <lat> --lon <lon> [--name <label>] [--output <file.png>]`);
+  console.log(`Usage: npm run forecast -- --place "Oklahoma City, OK" [--school on|off] [--scroll] [--output <file.png>]
+       npm run forecast -- --lat <lat> --lon <lon> [--school on|off] [--scroll] [--output <file.png>]`);
 };
 
 const parseArgs = (argv: string[]): Record<string, string> => {
@@ -17,7 +18,11 @@ const parseArgs = (argv: string[]): Record<string, string> => {
       printUsage();
       process.exit(0);
     }
-    if (!["--place", "--lat", "--lon", "--name", "--output"].includes(arg) || argv[index + 1] === undefined) {
+    if (arg === "--scroll") {
+      options.scroll = "on";
+      continue;
+    }
+    if (!["--place", "--lat", "--lon", "--name", "--school", "--output"].includes(arg) || argv[index + 1] === undefined) {
       throw new Error(`Unknown or incomplete argument: ${arg}`);
     }
     options[arg.slice(2)] = argv[index + 1];
@@ -28,7 +33,7 @@ const parseArgs = (argv: string[]): Record<string, string> => {
 
 const main = async (): Promise<void> => {
   const options = parseArgs(process.argv.slice(2));
-  const png = await resolveForecastImage(
+  const place = await resolvePlace(
     { geocoding: new GeocodingClient(config.geocodingApi) },
     {
       place: options.place,
@@ -37,6 +42,7 @@ const main = async (): Promise<void> => {
       name: options.name
     }
   );
+  const png = await fetchDailyCard(place, { school: options.school, scroll: options.scroll !== undefined });
 
   const today = new Intl.DateTimeFormat("en-CA").format(new Date());
   const output = options.output

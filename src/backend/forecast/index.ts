@@ -13,7 +13,7 @@ export interface ForecastClients {
   geocoding: GeocodingClient;
 }
 
-const resolvePlace = async (clients: ForecastClients, request: ForecastRequest): Promise<Place> => {
+export const resolvePlace = async (clients: ForecastClients, request: ForecastRequest): Promise<Place> => {
   if (request.lat !== undefined || request.lon !== undefined) {
     const { lat, lon } = request;
     if (lat === undefined || lon === undefined || !Number.isFinite(lat) || !Number.isFinite(lon)) {

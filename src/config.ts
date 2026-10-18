@@ -11,8 +11,6 @@ const toPositiveInt = (value: string | undefined, fallback: number): number => {
 export const config = {
   // The website whose dashboard the forecast image screenshots, and the Chromium that loads it.
   websiteUrl: process.env.WEBSITE_URL ?? "https://edgewarn.ashk3000.com",
-  // Bearer key for the website's /automation/daily route. Must match the website's AUTOMATION_API_KEY.
-  automationApiKey: process.env.AUTOMATION_API_KEY,
   chromePath: process.env.CHROME_PATH ?? "/usr/bin/chromium",
   geocodingApi: process.env.GEOCODING_API ?? "https://geocoding-api.open-meteo.com",
   outputDir: path.resolve(process.cwd(), process.env.OUTPUT_DIR ?? "output"),
@@ -21,5 +19,10 @@ export const config = {
   // Instagram publishing. Instagram fetches images from publicBaseUrl, so it must reach this server over HTTPS.
   igAccessToken: process.env.IG_ACCESS_TOKEN,
   igUserId: process.env.IG_USER_ID,
-  publicBaseUrl: process.env.PUBLIC_BASE_URL
+  publicBaseUrl: process.env.PUBLIC_BASE_URL,
+  // Daily Instagram post (npm run daily).
+  dailyPlace: process.env.DAILY_PLACE,
+  dailyTimezone: process.env.DAILY_TIMEZONE ?? "America/Chicago",
+  dailyHour: Number.isInteger(Number(process.env.DAILY_HOUR ?? 7)) ? Number(process.env.DAILY_HOUR ?? 7) : 7,
+  dailyCaption: process.env.DAILY_CAPTION
 } as const;

@@ -28,7 +28,7 @@ npm run forecast -- --place "Oklahoma City, OK" --output output/forecast.png
 npm run forecast -- --lat 39.74 --lon -104.99 --name "Denver, CO"
 ```
 
-The image is the website's `/automation/daily` card (1080×1350 PNG), fetched with `Authorization: Bearer $AUTOMATION_API_KEY`. Set `AUTOMATION_API_KEY` in `.env` to the same value as the website's, and `WEBSITE_URL` (default `https://edgewarn.ashk3000.com`) to point elsewhere. Optional `--school on|off` and `--scroll` pass through to the route.
+The image is the website's `/automation/daily` card (1080×1350 JPEG, a public route). Set `WEBSITE_URL` (default `https://edgewarn.ashk3000.com`) to point elsewhere. Optional `--school on|off` and `--scroll` pass through to the route.
 
 The HTTP server and Instagram connector still screenshot `/dashboard?location=<lat>,<lon>` in headless Chromium (`CHROME_PATH`, default `/usr/bin/chromium`).
 
@@ -49,3 +49,11 @@ The server listens on `http://0.0.0.0:6767` by default and returns the image at 
 3. Run `npm run server:dev`, then `npm run ig -- --kind story --forecast "Oklahoma City, OK"` or `--kind feed --caption "..."`.
 
 Instagram fetches the image by URL, so the server's `/media/<name>.jpg` route serves the rendered JPEGs from `OUTPUT_DIR`. Stories do not take captions.
+
+## Daily post
+
+`npm run daily` runs a loop that, every day at `DAILY_HOUR` (default 7) in `DAILY_TIMEZONE` (default `America/Chicago`), posts the website's `/automation/daily` card for `DAILY_PLACE` to the Instagram feed (caption from `DAILY_CAPTION`, or a default). Instagram downloads the image from the website directly, so nothing is saved or served locally and `PUBLIC_BASE_URL` isn't needed. A run missed while the process is down is skipped.
+
+- `npm run daily -- --now` posts once immediately and exits; add `--dry-run` to print the card URL and caption without publishing.
+- Needs `DAILY_PLACE`, `IG_ACCESS_TOKEN`, and `IG_USER_ID` in `.env`.
+- To keep it running, build with `npm run build` and run `npm run daily:start` under systemd or pm2.

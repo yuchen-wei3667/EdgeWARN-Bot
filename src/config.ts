@@ -24,5 +24,7 @@ export const config = {
   dailyPlace: process.env.DAILY_PLACE,
   dailyTimezone: process.env.DAILY_TIMEZONE ?? "America/Chicago",
   dailyHour: Number.isInteger(Number(process.env.DAILY_HOUR ?? 7)) ? Number(process.env.DAILY_HOUR ?? 7) : 7,
-  dailyCaption: process.env.DAILY_CAPTION
+  dailyCaption: process.env.DAILY_CAPTION,
+  // JSON list of {date, reason} school closures; the card uses school=off on these dates and weekends.
+  schoolClosuresFile: path.resolve(process.cwd(), process.env.SCHOOL_CLOSURES_FILE ?? "config/school-closures.json")
 } as const;

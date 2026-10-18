@@ -1,20 +1,24 @@
 import { config } from "../../config.js";
 import type { Place } from "../sources/types.js";
+import { schoolOverride } from "./school.js";
 
 const TIMEOUT_MS = 90_000;
 
 export interface DailyCardOptions {
-  /** "on" or "off" to force the school-day layout; leave unset for the website to decide from the date. */
+  /** "on" or "off" to force the school-day layout; leave unset to use "off" on weekends and configured closures, otherwise the website decides. */
   school?: string;
   /** Asks for the scrolling variant of the card. */
   scroll?: boolean;
+  /** Uses the story-sized card from /automation/daily/story instead of the feed card. */
+  story?: boolean;
 }
 
 /** The public URL of the morning card (1080×1350 JPEG) from the website's /automation/daily route. */
 export const dailyCardUrl = (place: Place, options: DailyCardOptions = {}): URL => {
-  const url = new URL("/automation/daily", config.websiteUrl);
+  const url = new URL(options.story ? "/automation/daily/story" : "/automation/daily", config.websiteUrl);
   url.searchParams.set("location", `${place.latitude.toFixed(4)},${place.longitude.toFixed(4)}`);
-  if (options.school) url.searchParams.set("school", options.school);
+  const school = options.school ?? schoolOverride();
+  if (school) url.searchParams.set("school", school);
   if (options.scroll) url.searchParams.set("scroll", "on");
   return url;
 };

@@ -52,7 +52,7 @@ Instagram fetches the image by URL, so the server's `/media/<name>.jpg` route se
 
 ## Daily post
 
-`npm run daily` runs a loop that, every day at `DAILY_HOUR` (default 7) in `DAILY_TIMEZONE` (default `America/Chicago`), posts the website's `/automation/daily` card for `DAILY_PLACE` to the Instagram feed (caption from `DAILY_CAPTION`, or a default). Instagram downloads the image from the website directly, so nothing is saved or served locally and `PUBLIC_BASE_URL` isn't needed. A run missed while the process is down is skipped.
+`npm run daily` runs a loop that, every day in `DAILY_TIMEZONE` (default `America/New_York`), posts the website's `/automation/daily` card for `DAILY_PLACE` to the Instagram feed at `DAILY_FEED_TIME` (default 06:20) and the story card at `DAILY_STORY_TIME` (default 06:50) (caption from `DAILY_CAPTION`, or a default). Instagram downloads the image from the website directly, so nothing is saved or served locally and `PUBLIC_BASE_URL` isn't needed. A run missed while the process is down is skipped.
 
 - `npm run daily -- --now` posts once immediately and exits; add `--dry-run` to print the card URL and caption without publishing.
 - Needs `DAILY_PLACE`, `IG_ACCESS_TOKEN`, and `IG_USER_ID` in `.env`.

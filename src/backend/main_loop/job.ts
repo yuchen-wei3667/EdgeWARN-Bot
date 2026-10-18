@@ -7,6 +7,8 @@ import { GeocodingClient } from "../sources/geocoding.js";
 export interface DailyJobOptions {
   /** Prints the card URL and caption but skips publishing to Instagram. */
   dryRun?: boolean;
+  /** Posts only this kind; both when omitted. */
+  kind?: "feed" | "story";
 }
 
 const defaultCaption = (label: string): string => {
@@ -14,7 +16,7 @@ const defaultCaption = (label: string): string => {
   return `${label} forecast for ${date} #weather`;
 };
 
-/** Posts today's forecast card to the Instagram feed and the story. Instagram downloads it straight from the website's public /automation/daily route. */
+/** Posts today's forecast card to the Instagram feed and/or the story (both by default). Instagram downloads it straight from the website's public /automation/daily route. */
 export const runDailyPost = async (options: DailyJobOptions = {}): Promise<void> => {
   if (!config.dailyPlace) throw new Error("Set DAILY_PLACE in .env, such as DAILY_PLACE=Oklahoma City, OK.");
 
@@ -22,16 +24,18 @@ export const runDailyPost = async (options: DailyJobOptions = {}): Promise<void>
   const imageUrl = dailyCardUrl(place).href;
   const storyUrl = dailyCardUrl(place, { story: true }).href;
   const caption = config.dailyCaption || defaultCaption(place.label ?? config.dailyPlace);
+  const kinds = options.kind ? [options.kind] : (["feed", "story"] as const);
 
   if (options.dryRun) {
-    console.log(`Dry run: would post ${imageUrl}\nCaption: ${caption}\nStory: ${storyUrl}`);
+    if (kinds.includes("feed")) console.log(`Dry run: would post ${imageUrl}\nCaption: ${caption}`);
+    if (kinds.includes("story")) console.log(`Dry run: would post story ${storyUrl}`);
     return;
   }
   // Not retried: a retry after a timeout could post the same image twice. The feed post and story are independent, so one failing does not skip the other.
   const posts = [
     { name: "feed", publish: () => publishImage("feed", imageUrl, caption) },
     { name: "story", publish: () => publishImage("story", storyUrl) }
-  ];
+  ].filter((post) => (kinds as readonly string[]).includes(post.name));
   const failures: string[] = [];
   for (const post of posts) {
     try {

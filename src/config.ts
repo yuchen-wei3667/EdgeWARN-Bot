@@ -8,6 +8,13 @@ const toPositiveInt = (value: string | undefined, fallback: number): number => {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 };
 
+/** Parses "HH:MM" into minutes after midnight, or returns the fallback. */
+const toMinutes = (value: string | undefined, fallback: string): number => {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value ?? "") ?? /^(\d{1,2}):(\d{2})$/.exec(fallback)!;
+  const minutes = Number(match[1]) * 60 + Number(match[2]);
+  return minutes < 1440 ? minutes : toMinutes(undefined, fallback);
+};
+
 export const config = {
   // The website whose dashboard the forecast image screenshots, and the Chromium that loads it.
   websiteUrl: process.env.WEBSITE_URL ?? "https://edgewarn.ashk3000.com",
@@ -22,8 +29,10 @@ export const config = {
   publicBaseUrl: process.env.PUBLIC_BASE_URL,
   // Daily Instagram post (npm run daily).
   dailyPlace: process.env.DAILY_PLACE,
-  dailyTimezone: process.env.DAILY_TIMEZONE ?? "America/Chicago",
-  dailyHour: Number.isInteger(Number(process.env.DAILY_HOUR ?? 7)) ? Number(process.env.DAILY_HOUR ?? 7) : 7,
+  dailyTimezone: process.env.DAILY_TIMEZONE ?? "America/New_York",
+  // Minutes after midnight in dailyTimezone: the feed post at 6:20 AM and the story at 6:50 AM.
+  dailyFeedMinutes: toMinutes(process.env.DAILY_FEED_TIME, "06:20"),
+  dailyStoryMinutes: toMinutes(process.env.DAILY_STORY_TIME, "06:50"),
   dailyCaption: process.env.DAILY_CAPTION,
   // JSON list of {date, reason} school closures; the card uses school=off on these dates and weekends.
   schoolClosuresFile: path.resolve(process.cwd(), process.env.SCHOOL_CLOSURES_FILE ?? "config/school-closures.json")

@@ -28,7 +28,7 @@ npm run forecast -- --place "Oklahoma City, OK" --output output/forecast.png
 npm run forecast -- --lat 39.74 --lon -104.99 --name "Denver, CO"
 ```
 
-The image is the website's `/automation/daily` card (1080×1350 JPEG, a public route). Set `WEBSITE_URL` (default `https://edgewarn.ashk3000.com`) to point elsewhere. Optional `--school on|off` and `--scroll` pass through to the route.
+The image is the website's `/automation/daily` card (1080×1350 JPEG, a public route). Set `WEBSITE_URL` (default `https://edgewarn.vercel.app`) to point elsewhere. Optional `--school on|off` and `--scroll` pass through to the route.
 
 The HTTP server and Instagram connector still screenshot `/dashboard?location=<lat>,<lon>` in headless Chromium (`CHROME_PATH`, default `/usr/bin/chromium`).
 

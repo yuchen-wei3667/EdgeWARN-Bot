@@ -17,7 +17,7 @@ const toMinutes = (value: string | undefined, fallback: string): number => {
 
 export const config = {
   // The website whose dashboard the forecast image screenshots, and the Chromium that loads it.
-  websiteUrl: process.env.WEBSITE_URL ?? "https://edgewarn.ashk3000.com",
+  websiteUrl: process.env.WEBSITE_URL ?? "https://edgewarn.vercel.app",
   chromePath: process.env.CHROME_PATH ?? "/usr/bin/chromium",
   geocodingApi: process.env.GEOCODING_API ?? "https://geocoding-api.open-meteo.com",
   outputDir: path.resolve(process.cwd(), process.env.OUTPUT_DIR ?? "output"),

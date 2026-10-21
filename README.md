@@ -52,8 +52,15 @@ Instagram fetches the image by URL, so the server's `/media/<name>.jpg` route se
 
 ## Daily post
 
-`npm run daily` runs a loop that, every day in `DAILY_TIMEZONE` (default `America/New_York`), posts the website's `/automation/daily` card for `DAILY_PLACE` to the Instagram feed at `DAILY_FEED_TIME` (default 06:20) and the story card at `DAILY_STORY_TIME` (default 06:50) (caption from `DAILY_CAPTION`, or a default). Instagram downloads the image from the website directly, so nothing is saved or served locally and `PUBLIC_BASE_URL` isn't needed. A run missed while the process is down is skipped.
+`npm run daily` runs a loop that, every day in `DAILY_TIMEZONE` (default `America/New_York`), posts the website's `/automation/daily` card for `DAILY_PLACE` to the Instagram feed at `DAILY_FEED_TIME` (default 06:20) and the story card at `DAILY_STORY_TIME` (default 06:50) (caption from `DAILY_CAPTION`, or generated from the forecast; see below). Instagram downloads the image from the website directly, so nothing is saved or served locally and `PUBLIC_BASE_URL` isn't needed. A run missed while the process is down is skipped.
 
 - `npm run daily -- --now` posts once immediately and exits; add `--dry-run` to print the card URL and caption without publishing.
 - Needs `DAILY_PLACE`, `IG_ACCESS_TOKEN`, and `IG_USER_ID` in `.env`.
 - To keep it running, build with `npm run build` and run `npm run daily:start` under systemd or pm2.
+
+### Generated captions
+
+Without `DAILY_CAPTION`, `src/backend/forecast/caption.ts` writes the feed caption from the Open-Meteo forecast for `DAILY_PLACE` and any active NWS alerts (both free, no keys). It is rule-based and deterministic: the data picks the angle (an NWS alert, snow, rain at dismissal, wind, a big warmup, a cold morning, a temperature change from yesterday or tomorrow, a pleasant day, or a routine summary), and the date rotates the wording, the Edgemont/Scarsdale name, and the questions, so back-to-back posts differ and a question is never asked two posts in a row. Active NWS watches, warnings and advisories take over the caption with no questions or sharing prompts, and model-only storm or wind risks are labeled as not NWS alerts. If the forecast can't be loaded the caption falls back to a short keyword line.
+
+- `npm run daily -- --now --dry-run` prints the caption and which angle led it (`Caption topic: ...`), which you can match against post insights.
+- `CAPTION_STYLE=plain` drops the questions and sharing prompts, as a baseline for comparing against the default.

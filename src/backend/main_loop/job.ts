@@ -1,5 +1,6 @@
 import { config } from "../../config.js";
 import { publishImage } from "../../connectors/ig/index.js";
+import { buildCaption } from "../forecast/caption.js";
 import { dailyCardUrl } from "../forecast/automation.js";
 import { resolvePlace } from "../forecast/index.js";
 import { GeocodingClient } from "../sources/geocoding.js";
@@ -11,11 +12,6 @@ export interface DailyJobOptions {
   kind?: "feed" | "story";
 }
 
-const defaultCaption = (label: string): string => {
-  const date = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: config.dailyTimezone }).format(new Date());
-  return `${label} forecast for ${date} #weather`;
-};
-
 /** Posts today's forecast card to the Instagram feed and/or the story (both by default). Instagram downloads it straight from the website's public /automation/daily route. */
 export const runDailyPost = async (options: DailyJobOptions = {}): Promise<void> => {
   if (!config.dailyPlace) throw new Error("Set DAILY_PLACE in .env, such as DAILY_PLACE=Oklahoma City, OK.");
@@ -23,7 +19,9 @@ export const runDailyPost = async (options: DailyJobOptions = {}): Promise<void>
   const place = await resolvePlace({ geocoding: new GeocodingClient(config.geocodingApi) }, { place: config.dailyPlace });
   const imageUrl = dailyCardUrl(place).href;
   const storyUrl = dailyCardUrl(place, { story: true }).href;
-  const caption = config.dailyCaption || defaultCaption(place.label ?? config.dailyPlace);
+  const generated = config.dailyCaption ? undefined : await buildCaption(place);
+  const caption = config.dailyCaption || generated!.text;
+  if (generated) console.log(`Caption topic: ${generated.topic}${generated.question ? " (with question)" : ""}`);
   const kinds = options.kind ? [options.kind] : (["feed", "story"] as const);
 
   if (options.dryRun) {

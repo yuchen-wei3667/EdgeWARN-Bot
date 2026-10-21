@@ -34,6 +34,8 @@ export const config = {
   dailyFeedMinutes: toMinutes(process.env.DAILY_FEED_TIME, "06:20"),
   dailyStoryMinutes: toMinutes(process.env.DAILY_STORY_TIME, "06:50"),
   dailyCaption: process.env.DAILY_CAPTION,
+  // "plain" drops the questions and sharing prompts from generated captions, as a baseline for comparing post insights.
+  captionStyle: process.env.CAPTION_STYLE === "plain" ? ("plain" as const) : ("auto" as const),
   // JSON list of {date, reason} school closures; the card uses school=off on these dates and weekends.
   schoolClosuresFile: path.resolve(process.cwd(), process.env.SCHOOL_CLOSURES_FILE ?? "config/school-closures.json")
 } as const;
